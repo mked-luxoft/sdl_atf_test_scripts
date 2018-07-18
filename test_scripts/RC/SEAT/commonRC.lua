@@ -13,6 +13,9 @@ config.application2.registerAppInterfaceParams.syncMsgVersion.majorVersion = 5
 --[[ Required Shared libraries ]]
 local initialCommon = require('test_scripts/RC/commonRC')
 local test = require("user_modules/dummy_connecttest")
+local commonFunctions = require("user_modules/shared_testcases/commonFunctions")
+local utils = require('user_modules/utils')
+
 --[[ Local Variables ]]
 local commonRC = {}
 
@@ -92,10 +95,6 @@ function initialCommon.getModuleControlData(module_type)
   return out
 end
 
-function commonRC.getModuleControlData(module_type)
-  return initialCommon.getModuleControlData(module_type)
-end
-
 local origGetAnotherModuleControlData = initialCommon.getAnotherModuleControlData
 function commonRC.getAnotherModuleControlData(module_type)
   local out = { }
@@ -160,6 +159,31 @@ end
 
 function commonRC.getModuleParams(pModuleData)
   return initialCommon.getModuleParams(pModuleData)
+end
+
+initialCommon.actualInteriorDataStateOnHMI = {
+  CLIMATE = utils.cloneTable(initialCommon.getModuleControlData("CLIMATE")),
+  RADIO = utils.cloneTable(initialCommon.getModuleControlData("RADIO")),
+  SEAT = utils.cloneTable(initialCommon.getModuleControlData("SEAT"))
+}
+
+local setActualInteriorVDorigin = initialCommon.setActualInteriorVD
+function initialCommon.setActualInteriorVD(pModuleType, pParams)
+  if pModuleType == "SEAT" then
+    for key, value in pairs(pParams["seatControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= initialCommon.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key] then
+          initialCommon.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, initialCommon.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key]) then
+          initialCommon.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key] = value
+         end
+      end
+    end
+  else
+    setActualInteriorVDorigin(pModuleType, pParams)
+  end
 end
 
 function commonRC.buildHmiRcCapabilities(pClimateCapabilities, pRadioCapabilities, pSeatCapabilities, pButtonCapabilities)
@@ -268,16 +292,15 @@ local rcRPCs = {
         subscribe = pSubscribe
       }
     end,
-    hmiRequestParams = function(pModuleType, pAppId, pSubscribe)
+    hmiRequestParams = function(pModuleType, _, pSubscribe)
       return {
-        appID = commonRC.getHMIAppId(pAppId),
         moduleType = pModuleType,
         subscribe = pSubscribe
       }
     end,
     hmiResponseParams = function(pModuleType, pSubscribe)
       return {
-        moduleData = commonRC.getModuleControlData(pModuleType),
+        moduleData = initialCommon.actualInteriorDataStateOnHMI[pModuleType],
         isSubscribed = pSubscribe
       }
     end,
@@ -285,7 +308,7 @@ local rcRPCs = {
       return {
         success = success,
         resultCode = resultCode,
-        moduleData = commonRC.getModuleControlData(pModuleType),
+        moduleData = initialCommon.actualInteriorDataStateOnHMI[pModuleType],
         isSubscribed = pSubscribe
       }
     end
@@ -364,19 +387,19 @@ function commonRC.getHMIEventName(pRPC)
   return rcRPCs[pRPC].hmiEventName
 end
 
-function commonRC.getAppRequestParams(pRPC, ...)
+function initialCommon.getAppRequestParams(pRPC, ...)
   return rcRPCs[pRPC].requestParams(...)
 end
 
-function commonRC.getAppResponseParams(pRPC, ...)
+function initialCommon.getAppResponseParams(pRPC, ...)
   return rcRPCs[pRPC].responseParams(...)
 end
 
-function commonRC.getHMIRequestParams(pRPC, ...)
+function initialCommon.getHMIRequestParams(pRPC, ...)
   return rcRPCs[pRPC].hmiRequestParams(...)
 end
 
-function commonRC.getHMIResponseParams(pRPC, ...)
+function initialCommon.getHMIResponseParams(pRPC, ...)
   return rcRPCs[pRPC].hmiResponseParams(...)
 end
 

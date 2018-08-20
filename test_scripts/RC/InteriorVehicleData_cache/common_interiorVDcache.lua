@@ -25,8 +25,11 @@ config.application1.registerAppInterfaceParams.appHMIType = { "REMOTE_CONTROL" }
 config.application2.registerAppInterfaceParams.appHMIType = { "REMOTE_CONTROL" }
 config.application1.registerAppInterfaceParams.isMediaApplication = true
 config.application2.registerAppInterfaceParams.isMediaApplication = false
+config.application1.registerAppInterfaceParams.syncMsgVersion.majorVersion = 5
+config.application2.registerAppInterfaceParams.syncMsgVersion.majorVersion = 5
 
-m.modules = { "CLIMATE", "RADIO" }
+
+m.modules = { "RADIO", "CLIMATE", "SEAT", "AUDIO", "LIGHT", "HMI_SETTINGS" }
 
 m.actualInteriorDataStateOnHMI = {
 	CLIMATE = {
@@ -67,6 +70,76 @@ m.actualInteriorDataStateOnHMI = {
       signalChangeThreshold = 10,
       radioEnable = true,
       state = "ACQUIRING"
+    },
+  SEAT = {
+      id = "DRIVER",
+      heatingEnabled = true,
+      coolingEnabled = true,
+      heatingLevel = 50,
+      coolingLevel = 50,
+      horizontalPosition = 50,
+      verticalPosition = 50,
+      frontVerticalPosition = 50,
+      backVerticalPosition = 50,
+      backTiltAngle = 50,
+      headSupportHorizontalPosition = 50,
+      headSupportVerticalPosition = 50,
+      massageEnabled = true,
+      massageMode = {
+        {
+          massageZone = "LUMBAR",
+          massageMode = "HIGH"
+        },
+        {
+          massageZone = "SEAT_CUSHION",
+          massageMode = "LOW"
+        }
+      },
+      massageCushionFirmness = {
+        {
+          cushion = "TOP_LUMBAR",
+          firmness = 30
+        },
+        {
+          cushion = "BACK_BOLSTERS",
+          firmness = 60
+        }
+      },
+      memory = {
+        id = 1,
+        label = "Label value",
+        action = "SAVE"
+      }
+    },
+  AUDIO = {
+      source = "AM",
+      volume = 50,
+      equalizerSettings = {
+        {
+          channelId = 10,
+          channelName = "Channel 1",
+          channelSetting = 50
+        }
+      }
+    },
+  LIGHT = {
+      lightState = {
+        {
+          id = "FRONT_LEFT_HIGH_BEAM",
+          status = "ON",
+          density = 0.2,
+          color = {
+            red = 50,
+            green = 150,
+            blue = 200
+          }
+        }
+      }
+    },
+  HMI_SETTINGS = {
+      displayMode = "DAY",
+      temperatureUnit = "CELSIUS",
+      distanceUnit = "KILOMETERS"
     }
 }
 
@@ -92,7 +165,7 @@ function m.updatePreloadedPT()
   preloadedTable.policy_table.functional_groupings["RemoteControl"].rpcs.OnRCStatus = {
     hmi_levels = { "FULL", "BACKGROUND", "LIMITED", "NONE" }
   }
-  preloadedTable.policy_table.app_policies.default.moduleType = { "RADIO", "CLIMATE" }
+  preloadedTable.policy_table.app_policies.default.moduleType = m.modules
   preloadedTable.policy_table.app_policies.default.groups = { "Base-4", "RemoteControl" }
   preloadedTable.policy_table.app_policies.default.AppHMIType = { "REMOTE_CONTROL" }
   m.tableToJsonFile(preloadedTable, preloadedFile)
@@ -154,6 +227,14 @@ function m.getModuleControlData(module_type, pParams)
     out.climateControlData = pParams
   elseif module_type == "RADIO" then
     out.radioControlData = pParams
+  elseif module_type == "SEAT" then
+    out.seatControlData = pParams
+  elseif module_type == "AUDIO" then
+    out.audioControlData = pParams
+  elseif module_type == "LIGHT" then
+    out.lightControlData = pParams
+  elseif module_type == "HMI_SETTINGS" then
+    out.hmiSettingsControlData = pParams
   end
   return out
 end
@@ -261,6 +342,80 @@ function m.getAnotherModuleControlData(module_type)
       signalChangeThreshold = 20,
       radioEnable = true,
       state = "ACQUIRING"
+    }
+  elseif module_type == "SEAT" then
+    out = {
+      id = "DRIVER",
+      heatingEnabled = true,
+      coolingEnabled = false,
+      heatingLevel = 35,
+      coolingLevel = 35,
+      horizontalPosition = 50,
+      verticalPosition = 50,
+      frontVerticalPosition = 50,
+      backVerticalPosition = 50,
+      backTiltAngle = 50,
+      headSupportHorizontalPosition = 50,
+      headSupportVerticalPosition = 50,
+      massageEnabled = true,
+      massageMode = {
+        {
+          massageZone = "LUMBAR",
+          massageMode = "HIGH"
+        },
+        {
+          massageZone = "SEAT_CUSHION",
+          massageMode = "LOW"
+        }
+      },
+      massageCushionFirmness = {
+        {
+          cushion = "TOP_LUMBAR",
+          firmness = 30
+        },
+        {
+          cushion = "BACK_BOLSTERS",
+          firmness = 60
+        }
+      },
+      memory = {
+        id = 1,
+        label = "Label value",
+        action = "SAVE"
+      }
+    }
+  elseif module_type == "AUDIO" then
+    out = {
+      source = "AM",
+      volume = 35,
+      equalizerSettings = {
+        {
+          channelId = 10,
+          channelName = "Channel 1",
+          channelSetting = 50
+        }
+      }
+    }
+  elseif module_type == "LIGHT" then
+    out = {
+      lightState = {
+        {
+          id = "FRONT_RIGHT_HIGH_BEAM",
+          status = "ON",
+          density = 0.4,
+          color = {
+            red = 45,
+            green = 145,
+            blue = 190
+          }
+        }
+      }
+    }
+  elseif module_type == "HMI_SETTINGS" then
+    out = {
+      displayMode = "DAY",
+      temperatureUnit = "CELSIUS",
+      distanceUnit = "KILOMETERS"
     }
   end
   return out

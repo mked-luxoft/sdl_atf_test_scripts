@@ -75,7 +75,6 @@ local function fakeParam(pModuleType)
     })
 
   EXPECT_HMICALL("RC.GetInteriorVehicleData", {
-      appID = common.getHMIAppId(),
       moduleType = pModuleType,
       subscribe = true
     })

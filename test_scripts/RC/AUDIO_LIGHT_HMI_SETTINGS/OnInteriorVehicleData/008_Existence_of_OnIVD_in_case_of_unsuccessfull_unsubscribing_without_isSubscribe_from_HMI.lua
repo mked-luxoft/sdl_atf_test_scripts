@@ -37,7 +37,6 @@ local function unSubscriptionToModule(pModuleType, pResultCode)
     })
 
   EXPECT_HMICALL("RC.GetInteriorVehicleData", {
-      appID = common.getHMIAppId(),
       moduleType = pModuleType,
       subscribe = false
     })

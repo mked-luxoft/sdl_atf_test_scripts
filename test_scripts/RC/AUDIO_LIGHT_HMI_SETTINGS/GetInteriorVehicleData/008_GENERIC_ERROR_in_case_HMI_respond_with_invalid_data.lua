@@ -34,7 +34,6 @@ local function invalidParamType(pModuleType)
     })
 
   EXPECT_HMICALL("RC.GetInteriorVehicleData", {
-      appID = common.getHMIAppId(),
       moduleType = pModuleType,
       subscribe = true
     })
@@ -56,7 +55,6 @@ local function missingMandatoryParam(pModuleType)
     })
 
   EXPECT_HMICALL("RC.GetInteriorVehicleData", {
-      appID = common.getHMIAppId(),
       moduleType = pModuleType,
       subscribe = true
     })

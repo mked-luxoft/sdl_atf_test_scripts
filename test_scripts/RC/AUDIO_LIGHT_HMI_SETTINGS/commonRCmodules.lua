@@ -12,6 +12,7 @@ local test = require("user_modules/dummy_connecttest")
 local hmi_values = require("user_modules/hmi_values")
 local commonFunctions = require("user_modules/shared_testcases/commonFunctions")
 local commonPreconditions = require('user_modules/shared_testcases/commonPreconditions')
+local utils = require("user_modules/utils")
 
 --[[ Local Variables ]]
 local c = {}
@@ -303,15 +304,14 @@ local rcRPCs = {
         subscribe = pSubscribe
       }
     end,
-    hmiRequestParams = function(pModuleType, pAppId, pSubscribe)
+    hmiRequestParams = function(pModuleType, _, pSubscribe)
       return {
-        appID = c.getHMIAppId(pAppId),
         moduleType = pModuleType,
         subscribe = pSubscribe
       }
     end,
     hmiResponseParams = function(pModuleType, pSubscribe)
-      local GetInteriorVDModuleData = c.getModuleControlData(pModuleType)
+      local GetInteriorVDModuleData = commonRC.actualInteriorDataStateOnHMI[pModuleType]
       if GetInteriorVDModuleData.audioControlData then
         GetInteriorVDModuleData.audioControlData.keepContext = nil
       end
@@ -321,7 +321,7 @@ local rcRPCs = {
       }
     end,
     responseParams = function(success, resultCode, pModuleType, pSubscribe)
-      local GetInteriorVDModuleData = c.getModuleControlData(pModuleType)
+      local GetInteriorVDModuleData = commonRC.actualInteriorDataStateOnHMI[pModuleType]
       if GetInteriorVDModuleData.audioControlData then
         GetInteriorVDModuleData.audioControlData.keepContext = nil
       end
@@ -478,7 +478,9 @@ function c.subscribeToModule(pModuleType, pAppId)
   :Do(function(_, data)
       test.hmiConnection:SendResponse(data.id, data.method, "SUCCESS",
         c.getHMIResponseParams(rpc, pModuleType, subscribe))
+      commonRC.setActualInteriorVD(pModuleType, c.getHMIResponseParams(rpc, pModuleType, subscribe).moduleData)
     end)
+  :Times(AtMost(1))
   mobSession:ExpectResponse(cid, c.getAppResponseParams(rpc, true, "SUCCESS", pModuleType, subscribe))
   :ValidIf(function(_,data)
       if "AUDIO" == pModuleType and
@@ -498,7 +500,9 @@ function c.unSubscribeToModule(pModuleType, pAppId)
   :Do(function(_, data)
       test.hmiConnection:SendResponse(data.id, data.method, "SUCCESS",
         c.getHMIResponseParams(rpc, pModuleType, subscribe))
+      commonRC.setActualInteriorVD(pModuleType, c.getHMIResponseParams(rpc, pModuleType, subscribe).moduleData)
     end)
+  :Times(AtMost(1))
   mobSession:ExpectResponse(cid, c.getAppResponseParams(rpc, true, "SUCCESS", pModuleType, subscribe))
   :ValidIf(function(_,data)
       if "AUDIO" == pModuleType and
@@ -552,6 +556,7 @@ function c.isSubscribed(pModuleType, pAppId)
   local mobSession = c.getMobileSession(pAppId)
   local rpc = "OnInteriorVehicleData"
   test.hmiConnection:SendNotification(c.getHMIEventName(rpc), c.getHMIResponseParams(rpc, pModuleType))
+  commonRC.setActualInteriorVD(pModuleType, c.getHMIResponseParams(rpc, pModuleType).moduleData)
   mobSession:ExpectNotification(c.getAppEventName(rpc), c.getAppResponseParams(rpc, pModuleType))
   :ValidIf(function(_,data)
       if "AUDIO" == pModuleType and
@@ -566,6 +571,7 @@ function c.isUnsubscribed(pModuleType, pAppId)
   local mobSession = c.getMobileSession(pAppId)
   local rpc = "OnInteriorVehicleData"
   test.hmiConnection:SendNotification(c.getHMIEventName(rpc), c.getHMIResponseParams(rpc, pModuleType))
+  commonRC.setActualInteriorVD(pModuleType, c.getHMIResponseParams(rpc, pModuleType).moduleData)
   mobSession:ExpectNotification(c.getAppEventName(rpc), {}):Times(0)
 end
 
@@ -632,11 +638,75 @@ function c.updateDefaultCapabilities(pDisabledModuleTypes)
 end
 
 function c.getModuleControlDataForResponse(pModuleType)
-  local moduleData = c.getModuleControlData(pModuleType)
+  local moduleData = commonRC.actualInteriorDataStateOnHMI[pModuleType]
   if moduleData.audioControlData then
     moduleData.audioControlData.keepContext = nil
   end
   return moduleData
+end
+
+commonRC.actualInteriorDataStateOnHMI = {
+  CLIMATE = utils.cloneTable(c.getModuleControlData("CLIMATE")),
+  RADIO = utils.cloneTable(c.getModuleControlData("RADIO")),
+  SEAT = utils.cloneTable(c.getModuleControlData("SEAT")),
+  AUDIO = utils.cloneTable(c.getModuleControlData("AUDIO")),
+  LIGHT = utils.cloneTable(c.getModuleControlData("LIGHT")),
+  HMI_SETTINGS = utils.cloneTable(c.getModuleControlData("HMI_SETTINGS"))
+}
+
+local setActualInteriorVDorigin = commonRC.setActualInteriorVD
+function commonRC.setActualInteriorVD(pModuleType, pParams)
+  if pModuleType == "SEAT" then
+    for key, value in pairs(pParams["seatControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= commonRC.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key] then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key]) then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key] = value
+         end
+      end
+    end
+  elseif pModuleType == "AUDIO" then
+    for key, value in pairs(pParams["audioControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key] then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key]) then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key] = value
+         end
+      end
+    end
+  elseif pModuleType == "LIGHT" then
+    for key, value in pairs(pParams["lightControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key] then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key]) then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key] = value
+         end
+      end
+    end
+  elseif pModuleType == "HMI_SETTINGS" then
+    for key, value in pairs(pParams["hmiSettingsControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key] then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key]) then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key] = value
+         end
+      end
+    end
+  else
+    setActualInteriorVDorigin(pModuleType, pParams)
+  end
 end
 
 return c

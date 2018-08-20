@@ -31,7 +31,6 @@ local function getDataForModule(pModuleType, isSubscriptionActive)
     })
 
   EXPECT_HMICALL("RC.GetInteriorVehicleData", {
-      appID = common.getHMIAppId(),
       moduleType = pModuleType
     })
   :Do(function(_, data)

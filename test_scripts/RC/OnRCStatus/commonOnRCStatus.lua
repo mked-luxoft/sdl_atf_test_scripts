@@ -435,7 +435,10 @@ end
 commonRC.actualInteriorDataStateOnHMI = {
   CLIMATE = utils.cloneTable(commonRC.getModuleControlData("CLIMATE")),
   RADIO = utils.cloneTable(commonRC.getModuleControlData("RADIO")),
-  SEAT = utils.cloneTable(commonRC.getModuleControlData("SEAT"))
+  SEAT = utils.cloneTable(commonRC.getModuleControlData("SEAT")),
+  AUDIO = utils.cloneTable(commonRC.getModuleControlData("AUDIO")),
+  LIGHT = utils.cloneTable(commonRC.getModuleControlData("LIGHT")),
+  HMI_SETTINGS = utils.cloneTable(commonRC.getModuleControlData("HMI_SETTINGS"))
 }
 
 local setActualInteriorVDorigin = commonRC.setActualInteriorVD
@@ -449,6 +452,42 @@ function commonRC.setActualInteriorVD(pModuleType, pParams)
       else
         if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key]) then
           commonRC.actualInteriorDataStateOnHMI[pModuleType]["seatControlData"][key] = value
+         end
+      end
+    end
+  elseif pModuleType == "AUDIO" then
+    for key, value in pairs(pParams["audioControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key] then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key]) then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["audioControlData"][key] = value
+         end
+      end
+    end
+  elseif pModuleType == "LIGHT" then
+    for key, value in pairs(pParams["lightControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key] then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key]) then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["lightControlData"][key] = value
+         end
+      end
+    end
+  elseif pModuleType == "HMI_SETTINGS" then
+    for key, value in pairs(pParams["hmiSettingsControlData"]) do
+      if type(value) ~= "table" then
+        if value ~= commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key] then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key] = value
+        end
+      else
+        if false == commonFunctions:is_table_equal(value, commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key]) then
+          commonRC.actualInteriorDataStateOnHMI[pModuleType]["hmiSettingsControlData"][key] = value
          end
       end
     end

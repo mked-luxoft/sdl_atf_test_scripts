@@ -4,6 +4,7 @@
 -- Requirement summary:TBD
 --
 -- Description:
+-- In case:
 -- 1. Subscription for data_1, daat_2 for resumption is added by app
 -- 2. Unexpected disconnect and reconnect are performed
 -- 3. App reregisters with actual HashId

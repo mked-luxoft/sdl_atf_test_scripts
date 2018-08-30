@@ -15,10 +15,10 @@
 -- 8. VehicleInfo.SubscribeVD(data_1, data_3) is sent from SDL to HMI during resumption for app2
 -- 9. HMI responds with success resultCode to VehicleInfo.SubscribeVD(data_1, data_3) request for app2
 -- SDL does:
--- process unsuccess response from HMI
--- remove restored data for app1
--- respond RegisterAppInterfaceResponse(success=true,result_code=RESUME_FAILED) to app1
--- respond RegisterAppInterfaceResponse(success=true,result_code=SUCCESS) to app2
+-- 1. process unsuccess response from HMI
+-- 2. remove restored data for app1
+-- 3. respond RegisterAppInterfaceResponse(success=true,result_code=RESUME_FAILED) to app1
+-- 4. respond RegisterAppInterfaceResponse(success=true,result_code=SUCCESS) to app2
 ---------------------------------------------------------------------------------------------------
 
 --[[ Required Shared libraries ]]

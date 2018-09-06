@@ -106,18 +106,6 @@ function m.getRpcName(pRpcName, pInterfaceName)
   return pInterfaceName .. "." .. rpcName
 end
 
---[[ @sendResponseWithDelay: sending error response with delay
---! @parameters:
---! pData - data from received request
---! @return: none
---]]
-function m.sendResponseWithDelay(pData)
-  local function resp()
-    m.getHMIConnection():SendError(pData.id, pData.method, "GENERIC_ERROR", "info message")
-  end
-  RUN_AFTER(resp, 1500)
-end
-
 m.removeData = {
   DeleteUICommand = function(pAppId)
     local deleteCommandRequestParams = { }
@@ -331,7 +319,7 @@ function m.checkResumptionDataWithErrorResponse(pAppId, pErrorResponceRpc, pErro
     m.getHMIConnection():ExpectRequest("VR.AddCommand")
     :Do(function(_, data)
         if data.params.type == "Command" then
-          m.sendResponseWithDelay(data)
+          m.errorResponse(data)
         else
           m.sendResponse(data)
         end
@@ -345,7 +333,7 @@ function m.checkResumptionDataWithErrorResponse(pAppId, pErrorResponceRpc, pErro
     m.getHMIConnection():ExpectRequest("VR.AddCommand")
     :Do(function(_, data)
         if data.params.type == "Choice" then
-          m.sendResponseWithDelay(data)
+          m.errorResponse(data)
         else
           m.sendResponse(data)
         end
@@ -358,7 +346,7 @@ function m.checkResumptionDataWithErrorResponse(pAppId, pErrorResponceRpc, pErro
     rpcsRevertLocal[pErrorResponceRpc][pErrorResponseInterface] = nil
     m.getHMIConnection():ExpectRequest(m.getRpcName(pErrorResponceRpc, pErrorResponseInterface))
     :Do(function(_, data)
-        m.sendResponseWithDelay(data, pErrorResponseInterface, pErrorResponseInterface)
+        m.errorResponse(data)
       end)
   end
 
@@ -1036,15 +1024,11 @@ end
 --! @return: none
 --]]
 function m.sendResponse2Apps(pData, pErrorRpc, pErrorInterface)
-  local function ErrorResp()
-    m.errorResponse(pData)
-  end
-
   local isErrorResponse = isResponseErroneous(pData, pErrorRpc, pErrorInterface)
   if pData.method == "VehicleInfo.SubscribeVehicleData" and pErrorRpc == "subscribeVehicleData" and pData.params.gps then
-    RUN_AFTER(ErrorResp, 1500)
+    m.errorResponse(pData)
   elseif pData.params.appID == m.getHMIAppId(1) and isErrorResponse == true then
-    RUN_AFTER(ErrorResp, 1500)
+    m.errorResponse(pData)
   else
     m.getHMIConnection():SendResponse(pData.id, pData.method, "SUCCESS", {})
   end

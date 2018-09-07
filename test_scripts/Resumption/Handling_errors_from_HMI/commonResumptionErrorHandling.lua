@@ -18,6 +18,7 @@ local json = require("modules/json")
 local m = actions
 m.cloneTable = utils.cloneTable
 m.wait = utils.wait
+m.tableToString = utils.tableToString
 
 m.hashId = {}
 m.resumptionData = {
@@ -125,10 +126,13 @@ m.removeData = {
       else
         deleteCommandRequestParams = m.cloneTable(m.resumptionData[pAppId].addCommand.VR)
       end
+      deleteCommandRequestParams.vrCommands = nil
     else
       deleteCommandRequestParams = {}
       deleteCommandRequestParams[1] = m.cloneTable(m.resumptionData[pAppId].addCommand.VR)
+      deleteCommandRequestParams[1].vrCommands = nil
       deleteCommandRequestParams[2] = m.cloneTable(m.resumptionData[pAppId].createIntrerationChoiceSet.VR)
+      deleteCommandRequestParams[2].vrCommands = nil
     end
     deleteCommandRequestParams.vrCommands = nil
       m.getHMIConnection():ExpectRequest("VR.DeleteCommand", deleteCommandRequestParams[1], deleteCommandRequestParams[2])
@@ -207,9 +211,13 @@ m.rpcsRevert = {
     VR = function(pAppId, pTimes)
       if not pTimes then pTimes = 2 end
       m.getHMIConnection():ExpectRequest("VR.AddCommand")
-      :Do(function(_, data)
+      :Do(function(exp, data)
           m.sendResponse(data)
-          m.removeData.DeleteVRCommand(pAppId, data.params.type)
+          if pTimes == 2 and exp.occurences == 1 then
+            m.removeData.DeleteVRCommand(pAppId, _, 2)
+          elseif pTimes == 1 then
+            m.removeData.DeleteVRCommand(pAppId, data.params.type)
+          end
         end)
       :ValidIf(function(_, data)
           if data.params.type == "Choice" then
@@ -723,10 +731,10 @@ function m.setGlobalPropertiesResumption(pAppId, pErrorResponseInterface)
   local restoreData = {}
   if pErrorResponseInterface == "TTS" then
     timesUI  = 2
-    restoreData = getGlobalPropertiesResetData(pAppId, "TTS")
+    restoreData = getGlobalPropertiesResetData(pAppId, "UI")
   elseif pErrorResponseInterface == "UI" then
     timesTTS = 2
-    restoreData = getGlobalPropertiesResetData(pAppId, "UI")
+    restoreData = getGlobalPropertiesResetData(pAppId, "TTS")
   end
   m.getHMIConnection():ExpectRequest("UI.SetGlobalProperties",
     m.resumptionData[pAppId].setGlobalProperties.UI,

@@ -119,17 +119,23 @@ m.removeData = {
   DeleteVRCommand = function(pAppId, pRequestType, pTimes)
     if not pTimes then pTimes = 2 end
     local deleteCommandRequestParams
-    if pRequestType == "Choice" then
-      deleteCommandRequestParams = m.cloneTable(m.resumptionData[pAppId].createIntrerationChoiceSet.VR)
+    if pTimes == 1 then
+      if pRequestType == "Choice" then
+        deleteCommandRequestParams = m.cloneTable(m.resumptionData[pAppId].createIntrerationChoiceSet.VR)
+      else
+        deleteCommandRequestParams = m.cloneTable(m.resumptionData[pAppId].addCommand.VR)
+      end
     else
-      deleteCommandRequestParams = m.cloneTable(m.resumptionData[pAppId].addCommand.VR)
+      deleteCommandRequestParams = {}
+      deleteCommandRequestParams[1] = m.cloneTable(m.resumptionData[pAppId].addCommand.VR)
+      deleteCommandRequestParams[2] = m.cloneTable(m.resumptionData[pAppId].createIntrerationChoiceSet.VR)
     end
     deleteCommandRequestParams.vrCommands = nil
-    m.getHMIConnection():ExpectRequest("VR.DeleteCommand", deleteCommandRequestParams)
-    :Do(function(_,deleteData)
-        m.sendResponse(deleteData)
-      end)
-    :Times(pTimes)
+      m.getHMIConnection():ExpectRequest("VR.DeleteCommand", deleteCommandRequestParams[1], deleteCommandRequestParams[2])
+      :Do(function(_,deleteData)
+          m.sendResponse(deleteData)
+        end)
+      :Times(pTimes)
   end,
   DeleteSubMenu = function(pAppId)
     local deleteSubMenuRequestParams = {}
@@ -155,6 +161,37 @@ m.removeData = {
     :Times(pTimes)
   end
 }
+
+--[[ @getGlobalPropertiesResetData: construct data for reset SetGlobalProperties
+--! @parameters:
+--! pAppId - application number (1, 2, etc.)
+--! pInterface - name of RPC interface for reseting
+--! @return: RPC with interface
+--]]
+local function getGlobalPropertiesResetData(pAppId, pInterface)
+  local resetData = {}
+  if pInterface == "TTS" then
+    resetData.appID = m.getHMIAppId(pAppId)
+    resetData.helpPrompt = { }
+    resetData.timeoutPrompt = {}
+    local ttsDelimiter = m.readParameterFromSmartDeviceLinkIni("TTSDelimiter")
+    local helpPromptString = m.readParameterFromSmartDeviceLinkIni("HelpPromt")
+    local helpPromptList = m.splitString(helpPromptString, ttsDelimiter);
+
+    for key,value in pairs(helpPromptList) do
+      resetData.timeoutPrompt[key] = {
+        type = "TEXT",
+        text = value .. ttsDelimiter
+      }
+    end
+  else
+    resetData.appID = m.getHMIAppId(pAppId)
+    resetData.keyboardProperties = { autoCompleteText = "", keyboardLayout = "QWERTY", language = "EN-US"}
+    resetData.menuTitle = ""
+    resetData.vrHelpTitle = m.getConfigAppParams(pAppId).appName
+  end
+  return resetData
+end
 
 m.rpcsRevert = {
   addCommand = {
@@ -221,20 +258,7 @@ m.rpcsRevert = {
               "Expected result:" .. m.tableToString(m.resumptionData[pAppId].setGlobalProperties.TTS) .."\n"
             end
           else
-            local resetData = {}
-            resetData.appID = m.getHMIAppId(pAppId)
-            resetData.helpPrompt = { }
-            resetData.timeoutPrompt = {}
-            local ttsDelimiter = m.readParameterFromSmartDeviceLinkIni("TTSDelimiter")
-            local helpPromptString = m.readParameterFromSmartDeviceLinkIni("HelpPromt")
-            local helpPromptList = m.splitString(helpPromptString, ttsDelimiter);
-
-            for key,value in pairs(helpPromptList) do
-              resetData.timeoutPrompt[key] = {
-                type = "TEXT",
-                text = value .. ttsDelimiter
-              }
-            end
+            local resetData = getGlobalPropertiesResetData(pAppId, "TTS")
             if commonFunctions:is_table_equal(data.params, resetData) == true then
               return true
             else
@@ -262,11 +286,7 @@ m.rpcsRevert = {
               "Expected result:" .. m.tableToString(m.resumptionData[pAppId].setGlobalProperties.UI) .."\n"
             end
           else
-            local resetData = {}
-            resetData.appID = m.getHMIAppId(pAppId)
-            resetData.keyboardProperties = { autoCompleteText = "", keyboardLayout = "QWERTY", language = "EN-US"}
-            resetData.menuTitle = ""
-            resetData.vrHelpTitle = m.getConfigAppParams(pAppId).appName
+            local resetData = getGlobalPropertiesResetData(pAppId, "UI")
             if commonFunctions:is_table_equal(data.params, resetData) == true then
               return true
             else
@@ -650,6 +670,11 @@ end
 --! @return: none
 --]]
 function m.addCommandResumption(pAppId, pErrorResponseInterface)
+  if pErrorResponseInterface == "VR" then
+    m.removeData.DeleteUICommand(pAppId)
+  elseif pErrorResponseInterface == "UI" then
+    m.removeData.DeleteVRCommand(pAppId, "Command", 1)
+  end
   m.getHMIConnection():ExpectRequest("VR.AddCommand", m.resumptionData[pAppId].addCommand.VR)
   :Do(function(_, data)
       m.sendResponse(data, pErrorResponseInterface, "VR")
@@ -693,14 +718,30 @@ end
 --! @return: none
 --]]
 function m.setGlobalPropertiesResumption(pAppId, pErrorResponseInterface)
-  m.getHMIConnection():ExpectRequest("UI.SetGlobalProperties", m.resumptionData[pAppId].setGlobalProperties.UI)
+  local timesTTS = 1
+  local timesUI  = 1
+  local restoreData = {}
+  if pErrorResponseInterface == "TTS" then
+    timesUI  = 2
+    restoreData = getGlobalPropertiesResetData(pAppId, "TTS")
+  elseif pErrorResponseInterface == "UI" then
+    timesTTS = 2
+    restoreData = getGlobalPropertiesResetData(pAppId, "UI")
+  end
+  m.getHMIConnection():ExpectRequest("UI.SetGlobalProperties",
+    m.resumptionData[pAppId].setGlobalProperties.UI,
+    restoreData)
   :Do(function(_, data)
       m.sendResponse(data, pErrorResponseInterface, "UI")
     end)
-  m.getHMIConnection():ExpectRequest("TTS.SetGlobalProperties",m.resumptionData[pAppId].setGlobalProperties.TTS)
+  :Times(timesUI)
+  m.getHMIConnection():ExpectRequest("TTS.SetGlobalProperties",
+    m.resumptionData[pAppId].setGlobalProperties.TTS,
+    restoreData)
   :Do(function(_, data)
       m.sendResponse(data, pErrorResponseInterface, "TTS")
     end)
+  :Times(timesTTS)
 end
 
 --[[ @subscribeVehicleDataResumption: check resumption of subscribeVehicleDat data
@@ -1076,6 +1117,24 @@ function m.deactivateAppToBackground()
     })
   m.getMobileSession():ExpectNotification("OnHMIStatus",
     {hmiLevel = "BACKGROUND", audioStreamingState = "NOT_AUDIBLE", systemContext = "MAIN"})
+end
+
+--[[ @splitString: split string with separator
+--! @parameters:
+--! pInputStr - string
+--! pSep - separator
+--! @return: none
+--]]
+function m.splitString(pInputStr, pSep)
+  if pSep == nil then
+    pSep = "%s"
+  end
+  local splitted, i = {}, 1
+  for str in string.gmatch(pInputStr, "([^"..pSep.."]+)") do
+    splitted[i] = str
+    i = i + 1
+  end
+  return splitted
 end
 
 return m

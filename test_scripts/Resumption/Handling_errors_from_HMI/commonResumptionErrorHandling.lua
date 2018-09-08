@@ -955,13 +955,13 @@ end
 --! @return: none
 --]]
 function m.checkResumptionData2Apps(pErrorRpc, pErrorInterface)
-  local uiSetGPtimes = 2
-  local ttsSetGPtimes = 2
+  local uiSetGPtimes = 3
+  local ttsSetGPtimes = 3
   if pErrorRpc == "setGlobalProperties" then
     if pErrorInterface == "UI" then
-      ttsSetGPtimes = 3
+      uiSetGPtimes = 2
     else
-      uiSetGPtimes = 3
+      ttsSetGPtimes = 2
     end
   end
 
@@ -969,8 +969,10 @@ function m.checkResumptionData2Apps(pErrorRpc, pErrorInterface)
   revertRpcToUpdate.UnsubscribeWayPoints = nil
 
   if pErrorRpc == "addCommand" and pErrorInterface == "VR" then
+    revertRpcToUpdate.DeleteVRCommand = nil
     m.removeData.DeleteVRCommand(1, "Choice", 1 )
   elseif pErrorRpc == "createIntrerationChoiceSet" then
+    revertRpcToUpdate.DeleteVRCommand = nil
     m.removeData.DeleteVRCommand(1, "Command", 1 )
   elseif pErrorRpc == "addCommand" and pErrorInterface == "UI" then
     revertRpcToUpdate.DeleteUICommand = nil

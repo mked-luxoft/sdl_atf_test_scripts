@@ -46,7 +46,7 @@ local function checkResumptionData()
   :Do(function(exp, data)
       if exp.occurences == 1 and data.params.gps then
         local function sendResponse()
-          common.getHMIConnection():SendResponse(data.id, data.method, "GENERIC_ERROR", "info message")
+          common.getHMIConnection():SendError(data.id, data.method, "GENERIC_ERROR", "info message")
           isResponseSent = true
         end
         RUN_AFTER(sendResponse, 1000)

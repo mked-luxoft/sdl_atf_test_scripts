@@ -190,7 +190,6 @@ local function getGlobalPropertiesResetData(pAppId, pInterface)
     end
   else
     resetData.appID = m.getHMIAppId(pAppId)
-    resetData.keyboardProperties = { autoCompleteText = "", keyboardLayout = "QWERTY", language = "EN-US"}
     resetData.menuTitle = ""
     resetData.vrHelpTitle = m.getConfigAppParams(pAppId).appName
   end

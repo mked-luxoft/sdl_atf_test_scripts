@@ -858,7 +858,7 @@ function m.updatePreloadedPT()
   local pt = utils.jsonFileToTable(preloadedFile)
   pt.policy_table.functional_groupings["DataConsent-2"].rpcs = json.null
   local additionalRPCs = {
-    "SubscribeVehicleData", "UnsubscribeVehicleData", "SubscribeWayPoints", "UnsubscribeWayPoints"
+    "SubscribeVehicleData", "UnsubscribeVehicleData", "SubscribeWayPoints", "UnsubscribeWayPoints", "OnVehicleData", "OnWayPointChange"
   }
   pt.policy_table.functional_groupings.NewTestCaseGroup = { rpcs = { } }
   for _, v in pairs(additionalRPCs) do

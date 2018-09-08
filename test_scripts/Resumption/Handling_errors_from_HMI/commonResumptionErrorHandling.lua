@@ -3,6 +3,10 @@
 ---------------------------------------------------------------------------------------------------
 --[[ General configuration parameters ]]
 config.defaultProtocolVersion = 2
+config.application1.registerAppInterfaceParams.appHMIType = { "NAVIGATION" }
+config.application2.registerAppInterfaceParams.appHMIType = { "MEDIA" }
+config.application1.registerAppInterfaceParams.isMediaApplication = false
+config.application2.registerAppInterfaceParams.isMediaApplication = true
 
 --[[ Required Shared libraries ]]
 local actions = require("user_modules/sequences/actions")
@@ -937,12 +941,28 @@ function m.reRegisterApps(pCheckResumptionData, pErrorRpc, pErrorInterface, pRAI
       if exp.occurences == 1 then
         local corId2 = m.getMobileSession(2):SendRPC("RegisterAppInterface", requestParams2)
         m.getMobileSession(2):ExpectResponse(corId2, { success = true, resultCode = "SUCCESS" })
+        :Do(function()
+            m.getHMIConnection():ExpectRequest("BasicCommunication.ActivateApp", { appID = m.getHMIAppId(2) })
+            :Do(function(_, data)
+                m.getHMIConnection():SendResponse(data.id, "BasicCommunication.ActivateApp", "SUCCESS", {})
+              end)
+            m.getMobileSession(2):ExpectNotification("OnHMIStatus",
+              { hmiLevel = "NONE" },
+              { hmiLevel = "FULL" })
+            :Times(2)
+          end)
       end
     end)
   :Times(2)
 
   local corId1 = m.getMobileSession(1):SendRPC("RegisterAppInterface", requestParams1)
   m.getMobileSession(1):ExpectResponse(corId1, { success = true, resultCode = "RESUME_FAILED" })
+  :Do(function()
+       m.getMobileSession(1):ExpectNotification("OnHMIStatus",
+        { hmiLevel = "NONE" },
+        { hmiLevel = "LIMITED" })
+      :Times(2)
+    end)
   :Timeout(pRAIResponseExp)
 
   pCheckResumptionData(pErrorRpc, pErrorInterface)

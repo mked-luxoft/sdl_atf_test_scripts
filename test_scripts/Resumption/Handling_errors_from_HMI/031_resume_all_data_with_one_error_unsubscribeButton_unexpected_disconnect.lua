@@ -32,7 +32,7 @@ local function checkResumptionDataWithErrorResponse(pAppId, pErrorResponceRpc, p
     common.getHMIConnection():ExpectRequest("VR.AddCommand")
     :Do(function(_, data)
         if data.params.type == "Command" then
-          common.sendResponseWithDelay(data)
+          common.errorResponse(data)
         else
           common.sendResponse(data)
         end
@@ -46,7 +46,7 @@ local function checkResumptionDataWithErrorResponse(pAppId, pErrorResponceRpc, p
     common.getHMIConnection():ExpectRequest("VR.AddCommand")
     :Do(function(_, data)
         if data.params.type == "Choice" then
-          common.sendResponseWithDelay(data)
+          common.errorResponse(data)
         else
           common.sendResponse(data)
         end
@@ -59,7 +59,7 @@ local function checkResumptionDataWithErrorResponse(pAppId, pErrorResponceRpc, p
     rpcsRevertLocal[pErrorResponceRpc][pErrorResponseInterface] = nil
     common.getHMIConnection():ExpectRequest(common.getRpcName(pErrorResponceRpc, pErrorResponseInterface))
     :Do(function(_, data)
-        common.sendResponseWithDelay(data, pErrorResponseInterface, pErrorResponseInterface)
+        common.errorResponse(data)
       end)
   end
 

@@ -411,12 +411,12 @@ function m.reRegisterApp(pAppId, pCheckResumptionData, pCheckResumptionHMILevel,
         })
       mobSession:ExpectResponse(corId, { success = true, resultCode = "RESUME_FAILED" })
       :Do(function()
+          pCheckResumptionHMILevel(pAppId)
           mobSession:ExpectNotification("OnPermissionsChange")
         end)
       :Timeout(pRAIResponseExp)
     end)
   pCheckResumptionData(pAppId, pErrorResponceRpc, pErrorResponseInterface)
-  pCheckResumptionHMILevel(pAppId)
 end
 
 --[[ @reRegisterAppSuccess: re-register application with SUCCESS resultCode

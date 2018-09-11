@@ -7,6 +7,7 @@ config.application1.registerAppInterfaceParams.appHMIType = { "NAVIGATION" }
 config.application2.registerAppInterfaceParams.appHMIType = { "MEDIA" }
 config.application1.registerAppInterfaceParams.isMediaApplication = false
 config.application2.registerAppInterfaceParams.isMediaApplication = true
+config.ExitOnCrash = false
 
 --[[ Required Shared libraries ]]
 local actions = require("user_modules/sequences/actions")
@@ -888,21 +889,45 @@ end
 --! @return: none
 --]]
 function m.ignitionOff()
+  local timeout = 5000
+  local function removeSessions()
+    for i = 1, m.getAppsCount() do
+      test.mobileSession[i] = nil
+    end
+  end
+  local event = events.Event()
+  event.matches = function(event1, event2) return event1 == event2 end
+  EXPECT_EVENT(event, "SDL shutdown")
+  :Do(function()
+      removeSessions()
+      StopSDL()
+      m.wait(1000)
+    end)
   m.getHMIConnection():SendNotification("BasicCommunication.OnExitAllApplications", { reason = "SUSPEND" })
   EXPECT_HMINOTIFICATION("BasicCommunication.OnSDLPersistenceComplete")
   :Do(function()
       m.getHMIConnection():SendNotification("BasicCommunication.OnExitAllApplications",{ reason = "IGNITION_OFF" })
-      for i=1, m.getAppsCount() do
+      for i = 1, m.getAppsCount() do
         m.getMobileSession(i):ExpectNotification("OnAppInterfaceUnregistered", { reason = "IGNITION_OFF" })
       end
     end)
   EXPECT_HMINOTIFICATION("BasicCommunication.OnAppUnregistered", { unexpectedDisconnect = false })
   :Times(m.getAppsCount())
+  local isSDLShutDownSuccessfully = false
   EXPECT_HMINOTIFICATION("BasicCommunication.OnSDLClose")
   :Do(function()
-      m.cleanSessions()
-      StopSDL()
+      utils.cprint(35, "SDL was shutdown successfully")
+      isSDLShutDownSuccessfully = true
+      RAISE_EVENT(event, event)
     end)
+  :Timeout(timeout)
+  local function forceStopSDL()
+    if isSDLShutDownSuccessfully == false then
+      utils.cprint(35, "SDL was shutdown forcibly")
+      RAISE_EVENT(event, event)
+    end
+  end
+  RUN_AFTER(forceStopSDL, timeout + 500)
 end
 
 --[[ @openRPCservice: open RPC service

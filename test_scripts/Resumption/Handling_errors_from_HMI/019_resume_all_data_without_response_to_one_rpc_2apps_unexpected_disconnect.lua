@@ -57,9 +57,9 @@ runner.Step("Clean environment", common.preconditions)
 runner.Step("Start SDL, HMI, connect Mobile, start Session", common.start)
 
 runner.Title("Test")
-for k, value in pairs(rpcs) do
-  for _, interface in pairs(value) do
-    runner.Title("Rpc " .. k .. " error resultCode to interface " .. interface)
+-- for k, value in pairs(rpcs) do
+  for _, interface in pairs(rpcs["subscribeVehicleData"]) do
+    runner.Title("Rpc " .. "subscribeVehicleData" .. " error resultCode to interface " .. interface)
     runner.Step("Register app1", common.registerAppWOPTU)
     runner.Step("Register app2", common.registerAppWOPTU, { 2 })
     runner.Step("Activate app1", common.activateApp)
@@ -75,12 +75,12 @@ for k, value in pairs(rpcs) do
     runner.Step("Connect mobile", common.connectMobile)
     runner.Step("openRPCserviceForApp1", common.openRPCservice, { 1 })
     runner.Step("openRPCserviceForApp2", common.openRPCservice, { 2 })
-    runner.Step("Reregister Apps resumption error to " .. interface .. " " .. k,common.reRegisterApps,
-      {common.checkResumptionData2Apps, k, interface, 12000})
+    runner.Step("Reregister Apps resumption error to " .. interface .. " " .. "subscribeVehicleData",common.reRegisterApps,
+      {common.checkResumptionData2Apps, "subscribeVehicleData", interface, 12000})
     runner.Step("Unregister app1", common.unregisterAppInterface, { 1 })
     runner.Step("Unregister app2", common.unregisterAppInterface, { 2 })
   end
-end
+-- end
 
 runner.Title("Postconditions")
 runner.Step("Stop SDL", common.postconditions)

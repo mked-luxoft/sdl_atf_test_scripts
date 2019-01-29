@@ -21,8 +21,9 @@
 -- In case:
 -- 3) Determines that cert is invalid
 -- SDL does:
--- 1) send OnServiceUpdate (VIDEO, INVALID_CERT) to HMI
--- 2) send StartServiceNACK(Video) to mobile app
+-- 1) send OnServiceUpdate (RPC, INVALID_CERT) to HMI
+-- 2) send OnServiceUpdate (VIDEO, AUDIO, REQUEST_ACCEPTED) to HMI
+-- 3) send StartServiceACK(Video, Audio), encryption = false, StartServiceNACK(RPC), encryption = false to mobile app
 ---------------------------------------------------------------------------------------------------
 --[[ Required Shared libraries ]]
 local runner = require('user_modules/script_runner')
@@ -38,14 +39,19 @@ function common.decryptCertificateRes(pData)
 end
 
 function common.onServiceUpdateFunc(pServiceTypeValue)
-  common.getHMIConnection():ExpectNotification("BasicCommunication.OnServiceUpdate",
-    { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
-    { serviceEvent = "REQUEST_REJECTED",
-      serviceType = pServiceTypeValue,
-      reason = "INVALID_CERT",
-      appID = common.getHMIAppId() })
-  :Times(2)
-
+  if pServiceTypeValue == "RPC" then
+    common.getHMIConnection():ExpectNotification("BasicCommunication.OnServiceUpdate",
+      { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
+      { serviceEvent = "REQUEST_REJECTED",
+        serviceType = pServiceTypeValue,
+        reason = "INVALID_TIME", appID = common.getHMIAppId()
+      })
+    :Times(2)
+  else
+    common.getHMIConnection():ExpectNotification("BasicCommunication.OnServiceUpdate",
+      { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
+      { serviceEvent = "REQUEST_ACCEPTED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() })
+  end
   local startserviceEvent = events.Event()
   startserviceEvent.level = 3
     startserviceEvent.matches = function(_, data)

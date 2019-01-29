@@ -3,7 +3,8 @@
 -- https://github.com/smartdevicelink/sdl_evolution/blob/master/proposals/0211-ServiceStatusUpdateToHMI.md
 -- Description: Opening of the protected RPC service with succeeded OnStatusUpdate notifications
 -- Precondition:
--- 1) App is registered with NAVIGATION appHMIType and activated.
+-- 1) App is registered with NAVIGATION appHMIType and activated
+-- 2) Mobile app requests StartService (RPC, encryption = true)
 -- In case:
 -- 1) Mobile app requests StartSream (RPC, encryption = true)
 -- SDL does:

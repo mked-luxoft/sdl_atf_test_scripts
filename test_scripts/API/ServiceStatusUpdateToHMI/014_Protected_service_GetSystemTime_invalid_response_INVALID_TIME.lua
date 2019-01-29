@@ -12,7 +12,7 @@
 -- 1) send StartSream() to HMI
 -- 2) send OnServiceUpdate (VIDEO, REQUEST_RECEIVED) to HMI
 -- 3) send GetSystemTime_Rq() and wait response from HMI GetSystemTime_Res()
--- In case: HMI send GetSystemTime_Rq(Time is not provided) to SDL
+-- In case: HMI send GetSystemTime_Rq(Time is not correct) to SDL
 -- SDL does:
 -- 1) send StartServiceNACK(Video) to mobile app
 -- 2) send OnServiceUpdate (VIDEO, INVALID_TIME, REQUEST_REJECTED) to HMI

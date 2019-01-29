@@ -3,19 +3,20 @@
 -- https://github.com/smartdevicelink/sdl_evolution/blob/master/proposals/0211-ServiceStatusUpdateToHMI.md
 -- Description: The attempt to open the protected Video, Audio, RPC services with unsuccessful
 --  OnStatusUpdate(REQUEST_REJECTED, INVALID_TIME) notification by receiving GetSystemTime response with invalid result
---  code from HMI and services are not force protected
+--  code from HMI and services are not force protected and not force unprotected
 -- Precondition:
 -- 1) App is registered with NAVIGATION appHMIType and activated.
 -- In case:
--- 1) Mobile app requests StartService (Video encryption = false)
+-- 1) Mobile app requests StartService (Video encryption = true)
 -- SDL does:
 -- 1) send StartSream() to HMI
 -- 2) send OnServiceUpdate (VIDEO, REQUEST_RECEIVED) to HMI
 -- 3) send GetSystemTime_Rq() and wait response from HMI GetSystemTime_Res()
--- In case: HMI send GetSystemTime_Rq(provided not correct time) to SDL
+-- In case: HMI provides invalid GetSystemTime_Res()
 -- SDL does:
--- 1) send StartServiceACK(Video) to mobile app
--- 2) send OnServiceUpdate (VIDEO, INVALID_TIME, REQUEST_REJECTED) to HMI
+-- 1) send OnServiceUpdate (RPC, INVALID_TIME, REQUEST_REJECTED) to HMI
+-- 2) send OnServiceUpdate (VIDEO, AUDIO, REQUEST_ACCEPTED) to HMI
+-- 3) send StartServiceACK(Video, Audio), encryption = false, StartServiceNACK(RPC), encryption = false to mobile app
 ---------------------------------------------------------------------------------------------------
 --[[ Required Shared libraries ]]
 local runner = require('user_modules/script_runner')
@@ -30,7 +31,19 @@ function common.getSystemTimeRes(pData)
 end
 
 function common.onServiceUpdateFunc(pServiceTypeValue)
-  common.serviceStatusWithGetSystemTimeUnsuccess(pServiceTypeValue)
+  if pServiceTypeValue == "RPC" then
+    common.getHMIConnection():ExpectNotification("BasicCommunication.OnServiceUpdate",
+      { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
+      { serviceEvent = "REQUEST_REJECTED",
+      serviceType = pServiceTypeValue,
+      reason = "INVALID_CERT",
+      appID = common.getHMIAppId() })
+    :Times(2)
+  else
+    common.getHMIConnection():ExpectNotification("BasicCommunication.OnServiceUpdate",
+      { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
+      { serviceEvent = "REQUEST_ACCEPTED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() })
+  end
 end
 
 function common.serviceResponseFunc(pServiceId, pStreamingFunc)

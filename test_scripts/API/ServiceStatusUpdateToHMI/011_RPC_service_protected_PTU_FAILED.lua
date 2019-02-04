@@ -67,7 +67,7 @@ end
 
 --[[ Scenario ]]
 runner.Title("Preconditions")
-runner.Step("Clean environment", common.preconditions, { "0x0B" })
+runner.Step("Clean environment", common.preconditions)
 runner.Step("Init SDL certificates", common.initSDLCertificates,
   { "./files/Security/client_credential_expired.pem", true })
 runner.Step("Start SDL, HMI, connect Mobile, start Session", common.start)

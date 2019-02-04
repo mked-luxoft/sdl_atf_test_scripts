@@ -56,7 +56,6 @@ function common.onServiceUpdateFunc(pServiceTypeValue)
   :Do(function(_, data)
       common.getSystemTimeRes(data)
     end)
-
 end
 
 function common.serviceResponseFunc(pServiceId, pStreamingFunc)

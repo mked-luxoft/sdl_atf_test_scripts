@@ -22,7 +22,6 @@
 --[[ Required Shared libraries ]]
 local runner = require('user_modules/script_runner')
 local common = require('test_scripts/API/ServiceStatusUpdateToHMI/common')
-local utils = require("user_modules/utils")
 
 --[[ Test Configuration ]]
 runner.testSettings.isSelfIncluded = false
@@ -36,7 +35,6 @@ function common.onServiceUpdateFunc(pServiceTypeValue)
       reason = "PTU_FAILED",
       appID = common.getHMIAppId() })
   :Times(2)
-  :Timeout(65000)
 end
 
 function common.serviceResponseFunc(pServiceId)
@@ -44,31 +42,34 @@ function common.serviceResponseFunc(pServiceId)
     frameInfo = common.frameInfo.START_SERVICE_NACK,
     encryption = false
   })
-  :Timeout(65000)
+end
+
+local function policyTableUpdateUnsuccess()
+  local pPTUpdateFunc = function(pTbl)
+    pTbl.policy_table.app_policies = nil
+  end
+  local pExpNotificationFunc = function()
+    common.getHMIConnection():ExpectRequest("VehicleInfo.GetVehicleData")
+    :Times(0)
+    common.getHMIConnection():ExpectRequest("BasicCommunication.DecryptCertificate")
+    :Times(0)
+  end
+  common.policyTableUpdate(pPTUpdateFunc, pExpNotificationFunc)
 end
 
 function common.policyTableUpdateFunc()
   common.getHMIConnection():ExpectNotification("SDL.OnStatusUpdate",
-  { status = "UPDATE_NEEDED" }, { status = "UPDATING" },
-  { status = "UPDATE_NEEDED" }, { status = "UPDATING" })
-  :Times(4)
-  :Timeout(65000)
-  :Do(function(exp, data)
-    if exp.occurences == 2 and data.params.status == "UPDATING" then
-      utils.cprint(35, "Waiting for PTU retry")
-    end
-  end)
-
-  common.policyTableUpdateUnsuccess()
-
-  common.wait(65000)
+    { status = "UPDATE_NEEDED" }, { status = "UPDATING" },
+    { status = "UPDATE_NEEDED" })
+  :Times(3)
+  policyTableUpdateUnsuccess()
 end
 
 --[[ Scenario ]]
 runner.Title("Preconditions")
-runner.Step("Clean environment", common.preconditions, { "0x0B" })
+runner.Step("Clean environment", common.preconditions, { "0x0A" })
 runner.Step("Init SDL certificates", common.initSDLCertificates,
-  { "./files/Security/client_credential_expired.pem", false })
+  { "./files/Security/client_credential_expired.pem", true })
 runner.Step("Start SDL, HMI, connect Mobile, start Session", common.start)
 runner.Step("App registration", common.registerApp)
 runner.Step("PolicyTableUpdate", common.policyTableUpdate)

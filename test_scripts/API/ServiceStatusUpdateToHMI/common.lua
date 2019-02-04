@@ -41,40 +41,20 @@ function m.postconditions()
 end
 
 local policyTableUpdate_orig = m.policyTableUpdate
-function m.policyTableUpdate(pPTUpdateFunc)
+function m.policyTableUpdate(pPTUpdateFunc, pExpNotificationFunc)
   local function expNotificationFunc()
-    m.getHMIConnection():ExpectRequest("BasicCommunication.DecryptCertificate")
-    :Do(function(_, d)
-        m.getHMIConnection():SendResponse(d.id, d.method, "SUCCESS", { })
-      end)
-    :Times(AnyNumber())
-    m.getHMIConnection():ExpectRequest("VehicleInfo.GetVehicleData", { odometer = true })
+    if pExpNotificationFunc then
+      pExpNotificationFunc()
+    else
+      m.getHMIConnection():ExpectRequest("BasicCommunication.DecryptCertificate")
+      :Do(function(_, d)
+          m.getHMIConnection():SendResponse(d.id, d.method, "SUCCESS", { })
+        end)
+      :Times(AnyNumber())
+      m.getHMIConnection():ExpectRequest("VehicleInfo.GetVehicleData", { odometer = true })
+    end
   end
   policyTableUpdate_orig(pPTUpdateFunc, expNotificationFunc)
-end
-
-function m.policyTableUpdateUnsuccess()
-  local requestId = m.getHMIConnection():SendRequest("SDL.GetURLS", { service = 7 })
-  m.getHMIConnection():ExpectResponse(requestId)
-  :Do(function()
-      m.getHMIConnection():SendNotification("BasicCommunication.OnSystemRequest",
-        { requestType = "PROPRIETARY", fileName = "/fs/mp/somefile" })
-
-      local event = events.Event()
-      event.matches = function(e1, e2) return e1 == e2 end
-      m.getHMIConnection():ExpectEvent(event, "PTU event")
-      for id = 1, m.getAppsCount() do
-        m.getMobileSession(id):ExpectNotification("OnSystemRequest", { requestType = "PROPRIETARY" })
-        :Do(function()
-            local corIdSystemRequest = m.getMobileSession(id):SendRPC("SystemRequest", {
-              requestType = "PROPRIETARY" })
-            m.getMobileSession(id):ExpectResponse(corIdSystemRequest, { success = false, resultCode = "REJECTED" })
-            utils.cprint(35, "App ".. id .. " was used for PTU")
-            m.getHMIConnection():RaiseEvent(event, "PTU event")
-          end)
-        :Times(AtMost(1))
-      end
-    end)
 end
 
 function m.startStream()

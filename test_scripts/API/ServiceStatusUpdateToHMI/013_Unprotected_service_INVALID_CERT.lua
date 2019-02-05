@@ -54,6 +54,7 @@ function common.onServiceUpdateFunc(pServiceTypeValue)
     common.getHMIConnection():ExpectNotification("BasicCommunication.OnServiceUpdate",
       { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
       { serviceEvent = "REQUEST_ACCEPTED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() })
+      :Times(2)
   end
 end
 

@@ -26,7 +26,7 @@ runner.testSettings.isSelfIncluded = false
 
 -- [[ Local function ]]
 function common.getSystemTimeRes(pData)
-  common.getHMIConnection():SendError(pData.id, pData.method, "WRONG_ENUM", "Time is not provided")
+  common.getHMIConnection():SendError(pData.id, pData.method, "DATA_NOT_AVAILABLE", "Time is not provided")
 end
 
 function common.onServiceUpdateFunc(pServiceTypeValue)

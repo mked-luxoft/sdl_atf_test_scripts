@@ -49,7 +49,7 @@ runner.testSettings.isSelfIncluded = false
 function common.serviceResponseFunc(pServiceId, _, pAppId)
   common.getMobileSession(pAppId):ExpectControlMessage(pServiceId, {
     frameInfo = common.frameInfo.START_SERVICE_ACK,
-    encryption = false
+    encryption = true
   })
 end
 
@@ -68,11 +68,11 @@ runner.Step("PolicyTableUpdate for app 2", common.policyTableUpdate)
 
 runner.Title("Test")
 runner.Step("App 1 activation", common.activateApp, { 1 })
-runner.Step("Start Video Service app 1", common.startServiceWithOnServiceUpdate, { 11, 0, 1 })
-runner.Step("Start Audio Service app 1", common.startServiceWithOnServiceUpdate, { 10, 0, 1 })
+runner.Step("Start Video Service app 1", common.startServiceWithOnServiceUpdate, { 11, 1, 1 })
+runner.Step("Start Audio Service app 1", common.startServiceWithOnServiceUpdate, { 10, 1, 1 })
 runner.Step("App 2 activation", common.activateApp, { 2 })
-runner.Step("Start Video Service app 2", common.startServiceWithOnServiceUpdate, { 11, 0, 2 })
-runner.Step("Start Audio Service app 2", common.startServiceWithOnServiceUpdate, { 10, 0, 2 })
+runner.Step("Start Video Service app 2", common.startServiceWithOnServiceUpdate, { 11, 1, 2 })
+runner.Step("Start Audio Service app 2", common.startServiceWithOnServiceUpdate, { 10, 1, 2 })
 
 runner.Title("Postconditions")
 runner.Step("Stop SDL", common.postconditions)

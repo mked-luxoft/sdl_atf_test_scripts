@@ -35,7 +35,7 @@ runner.testSettings.isSelfIncluded = false
 runner.Title("Preconditions")
 runner.Step("Clean environment", common.preconditions)
 runner.Step("Init SDL certificates", common.initSDLCertificates,
-  { "./files/Security/client_credential_expired.pem", true })
+  { "./files/Security/client_credential_expired.pem", false})
 runner.Step("Start SDL, HMI, connect Mobile, start Session", common.start)
 runner.Step("App registration", common.registerApp)
 runner.Step("PolicyTableUpdate", common.policyTableUpdate)

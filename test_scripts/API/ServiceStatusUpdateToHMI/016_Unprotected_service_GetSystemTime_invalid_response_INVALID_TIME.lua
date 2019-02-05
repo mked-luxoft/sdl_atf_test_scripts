@@ -21,14 +21,16 @@
 --[[ Required Shared libraries ]]
 local runner = require('user_modules/script_runner')
 local common = require('test_scripts/API/ServiceStatusUpdateToHMI/common')
+local events = require('events')
 
 --[[ Test Configuration ]]
 runner.testSettings.isSelfIncluded = false
 
 --[[ Local Function ]]
 function common.getSystemTimeRes(pData)
-  common.getHMIConnection():SendError(pData.id, pData.method, "WRONG_ENUM", "Time is not provided")
+  common.getHMIConnection():SendError(pData.id, pData.method, "DATA_NOT_AVAILABLE", "Time is not provided")
 end
+
 
 function common.onServiceUpdateFunc(pServiceTypeValue)
   if pServiceTypeValue == "RPC" then
@@ -36,13 +38,37 @@ function common.onServiceUpdateFunc(pServiceTypeValue)
       { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
       { serviceEvent = "REQUEST_REJECTED",
       serviceType = pServiceTypeValue,
-      reason = "INVALID_CERT",
+      reason = "INVALID_TIME",
       appID = common.getHMIAppId() })
     :Times(2)
+
+    local startserviceEvent = events.Event()
+  startserviceEvent.level = 3
+    startserviceEvent.matches = function(_, data)
+      return
+      data.method == "BasicCommunication.GetSystemTime"
+    end
+
+  common.getHMIConnection():ExpectEvent(startserviceEvent, "GetSystemTime")
+  :Do(function(_, data)
+      common.getSystemTimeRes(data)
+    end)
   else
     common.getHMIConnection():ExpectNotification("BasicCommunication.OnServiceUpdate",
       { serviceEvent = "REQUEST_RECEIVED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() },
       { serviceEvent = "REQUEST_ACCEPTED", serviceType = pServiceTypeValue, appID = common.getHMIAppId() })
+      :Times(2)
+      local startserviceEvent = events.Event()
+  startserviceEvent.level = 3
+    startserviceEvent.matches = function(_, data)
+      return
+      data.method == "BasicCommunication.GetSystemTime"
+    end
+
+  common.getHMIConnection():ExpectEvent(startserviceEvent, "GetSystemTime")
+  :Do(function(_, data)
+    common.getSystemTimeRes(data)
+    end)
   end
 end
 

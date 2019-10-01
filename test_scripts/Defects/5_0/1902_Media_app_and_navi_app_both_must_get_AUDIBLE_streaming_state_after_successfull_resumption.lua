@@ -17,6 +17,9 @@ local common = require('user_modules/sequences/actions')
 local runner = require('user_modules/script_runner')
 local test = require("user_modules/dummy_connecttest")
 local utils = require("user_modules/utils")
+local widgets = require("test_scripts/WidgetSupport/common")
+
+
 
 --[[ Test Configuration ]]
 runner.testSettings.isSelfIncluded = false
@@ -67,6 +70,21 @@ local function checkResumingNaviApp(pAppId)
       { hmiLevel = "LIMITED", audioStreamingState = "AUDIBLE", systemContext = "MAIN" })
 end
 
+local function dummyCheckFunction(lol, kek)
+  print("LOLKEK")
+end
+
+local function subscribeButton(pButName, pAppId)
+  local cid = common.getMobileSession():SendRPC("SubscribeButton", { buttonName = pButName })
+  common.getHMIConnection():ExpectNotification("Buttons.OnButtonSubscription",
+    { appID = common.getHMIAppId(), name = pButName, isSubscribed = true })
+  common.getMobileSession():ExpectResponse(cid, { success = true, resultCode = "SUCCESS" })
+  common.getMobileSession():ExpectNotification("OnHashChange")
+  :Do(function(_, data)
+      widgets.setHashId(data.payload.hashID, pAppId)
+    end)
+end
+
 --[[ Scenario ]]
 runner.Title("Preconditions")
 runner.Step("Clean environment", common.preconditions)
@@ -75,14 +93,15 @@ runner.Step("Register media app", common.registerAppWOPTU)
 runner.Step("Register navi app", common.registerAppWOPTU, {2})
 runner.Step("Activate navi app", common.activateApp, {2})
 runner.Step("Activate media app", common.activateApp)
+-- runner.Step("Subscribe lol", subscribeButton, {"OK", 10
 
 runner.Title("Test")
 runner.Step("IGNITION_OFF", ignitionOff)
 runner.Step("Close mobile connection", cleanSessions)
 runner.Step("Ignition On", common.start)
-runner.Step("Register media app", common.registerAppWOPTU)
+runner.Step("Register media app", widgets.reRegisterAppSuccess, { {}, 1, dummyCheckFunction})
 runner.Step("checkResuming media app to FULL", checkResumingMediaApp)
-runner.Step("Register navi app", common.registerAppWOPTU, {2})
+runner.Step("Register navi app", widgets.reRegisterAppSuccess, { {}, 2, dummyCheckFunction})
 runner.Step("checkResuming navi app to LIMITED", checkResumingNaviApp)
 
 runner.Title("Postconditions")

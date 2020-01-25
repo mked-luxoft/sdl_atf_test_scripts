@@ -33,6 +33,11 @@ local runner = require('user_modules/script_runner')
 local common = require('test_scripts/iAP2TransportSwitch/common')
 local mobSession = require("mobile_session")
 
+--[[ Conditions to scik test ]]
+if config.defaultMobileAdapterType == "WS" or config.defaultMobileAdapterType == "WSS" then
+  runner.skipTest("Test is not applicable for WS/WSS connection")
+end
+
 --[[ Local Variables ]]
 local deviceBluetooth
 local sessionBluetooth
@@ -52,7 +57,8 @@ local function connectBluetoothDevice(self)
         id = config.deviceMAC,
         name = common.device.bluetooth.uid,
         transportType = common.device.bluetooth.type
-      }
+      },
+      common.device.ws
     }
   })
   :Do(function(_, data)
@@ -112,7 +118,8 @@ local function connectUSBDevice(self)
         id = config.deviceMAC,
         name = common.device.bluetooth.uid,
         transportType = common.device.bluetooth.type
-      }
+      },
+      common.device.ws
     }
   },
   {
@@ -121,7 +128,8 @@ local function connectUSBDevice(self)
         id = config.deviceMAC,
         name = common.device.usb.uid,
         transportType = common.device.usb.type
-      }
+      },
+      common.device.ws
     }
   })
   :Do(function(_, data)

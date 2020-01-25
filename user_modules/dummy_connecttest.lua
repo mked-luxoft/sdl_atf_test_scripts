@@ -1,7 +1,7 @@
 require('atf.util')
 local module = require('testbase')
 local mobile = require("mobile_connection")
-local tcp = require("tcp_connection")
+local mobile_adapter_controller = require("mobile_adapter/mobile_adapter_controller")
 local file_connection = require("file_connection")
 local mobile_session = require("mobile_session")
 local websocket = require('websocket_connection')
@@ -24,12 +24,22 @@ local Expectation = expectations.Expectation
 local SUCCESS = expectations.SUCCESS
 local FAILED = expectations.FAILED
 
+--- HMI connection
 module.hmiConnection = hmi_connection.Connection(websocket.WebSocketConnection(config.hmiUrl, config.hmiPort))
-local tcpConnection = tcp.Connection(config.mobileHost, config.mobilePort)
-local fileConnection = file_connection.FileConnection("mobile.out", tcpConnection)
+
+--- Default mobile connection
+function module.getDefaultMobileAdapter(tcpHost, tcpPort)
+  return mobile_adapter_controller.getDefaultAdapter(tcpHost, tcpPort)
+end
+
+local mobileAdapter = module.getDefaultMobileAdapter()
+local fileConnection = file_connection.FileConnection("mobile.out", mobileAdapter)
 module.mobileConnection = mobile.MobileConnection(fileConnection)
+
 event_dispatcher:AddConnection(module.hmiConnection)
 event_dispatcher:AddConnection(module.mobileConnection)
+
+--- Notification counter
 module.notification_counter = 1
 module.sdlBuildOptions = SDL.buildOptions
 
@@ -286,6 +296,8 @@ function StopSDL()
 end
 
 function module:runSDL()
+  event_dispatcher:ClearEvents()
+  module.expectations_list:Clear()
   if config.autorunSDL ~= true then
     SDL.autoStarted = false
     return
@@ -334,7 +346,8 @@ function module:initHMI()
           "BasicCommunication.OnResumeAudioSource",
           "BasicCommunication.OnSystemTimeReady",
           "BasicCommunication.OnSystemCapabilityUpdated",
-          "BasicCommunication.OnServiceUpdate"
+          "BasicCommunication.OnServiceUpdate",
+          "BasicCommunication.OnAppPropertiesChange"
         })
       registerComponent("UI",
         {
@@ -380,8 +393,13 @@ function module:initHMI_onReady(hmi_table)
     event.matches = function(self, data)
       return data.method == name
     end
+
+    local occurrence = hmi_table_element.occurrence
+    if occurrence == nil then
+      occurrence = hmi_table_element.mandatory and 1 or AnyNumber()
+    end
     local exp = EXPECT_HMIEVENT(event, name)
-    :Times(hmi_table_element.mandatory and 1 or AnyNumber())
+    :Times(occurrence)
     :Do(function(_, data)
         xmlReporter.AddMessage("hmi_connection","SendResponse",
         {
@@ -446,8 +464,9 @@ function module:connectMobile()
   :Do(function()
       print("Disconnected!!!")
     end)
+  local ret = EXPECT_EVENT(events.connectedEvent, "Connected")
   self.mobileConnection:Connect()
-  return EXPECT_EVENT(events.connectedEvent, "Connected")
+  return ret
 end
 
 function module:startSession()

@@ -1,7 +1,7 @@
 require('atf.util')
 local module = require('testbase')
 local mobile = require("mobile_connection")
-local tcp = require("tcp_connection")
+local mobile_adapter_controller = require("mobile_adapter/mobile_adapter_controller")
 local file_connection = require("file_connection")
 local mobile_session = require("mobile_session")
 local websocket = require('websocket_connection')
@@ -23,8 +23,14 @@ local SUCCESS = expectations.SUCCESS
 local FAILED = expectations.FAILED
 
 module.hmiConnection = hmi_connection.Connection(websocket.WebSocketConnection(config.hmiUrl, config.hmiPort))
-local tcpConnection = tcp.Connection(config.mobileHost, config.mobilePort)
-local fileConnection = file_connection.FileConnection("mobile.out", tcpConnection)
+
+--- Default mobile connection
+function module.getDefaultMobileAdapter(tcpHost, tcpPort)
+  return mobile_adapter_controller.getDefaultAdapter(tcpHost, tcpPort)
+end
+
+local mobileAdapter = module.getDefaultMobileAdapter()
+local fileConnection = file_connection.FileConnection("mobile.out", mobileAdapter)
 module.mobileConnection = mobile.MobileConnection(fileConnection)
 event_dispatcher:AddConnection(module.hmiConnection)
 event_dispatcher:AddConnection(module.mobileConnection)
@@ -622,6 +628,9 @@ function module:initHMI_onReady()
       end
     end)
 
+  EXPECT_HMICALL("BasicCommunication.UpdateDeviceList"):Times(AtLeast(1))
+  :Do(function(_, data) self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {}) end)
+
   self.hmiConnection:SendNotification("BasicCommunication.OnReady")
 end
 
@@ -633,8 +642,9 @@ function module:connectMobile()
   :Do(function()
       print("Disconnected!!!")
     end)
+  local ret = EXPECT_EVENT(events.connectedEvent, "Connected")
   self.mobileConnection:Connect()
-  return EXPECT_EVENT(events.connectedEvent, "Connected")
+  return ret
 end
 
 function module:startSession()

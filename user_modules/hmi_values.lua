@@ -230,8 +230,9 @@ function module.getDefaultHMITable()
 
   hmi_table.BasicCommunication.UpdateDeviceList = {
     params = { },
-    mandatory = false,
-    pinned = true
+    mandatory = true,
+    pinned = true,
+    occurrence = AtLeast(1)
   }
 
   hmi_table.UI.ChangeRegistration = {

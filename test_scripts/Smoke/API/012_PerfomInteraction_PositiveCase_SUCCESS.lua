@@ -48,11 +48,11 @@ local putFileParams = {
   filePath = "files/icon.png"
 }
 
-local storagePath = commonPreconditions:GetPathToSDL() .. "storage/" ..
-config.application1.registerAppInterfaceParams.fullAppID .. "_" .. commonSmoke.getDeviceMAC() .. "/"
+-- local storagePath = commonPreconditions:GetPathToSDL() .. "storage/" ..
+-- config.application1.registerAppInterfaceParams.fullAppID .. "_" .. commonSmoke.getDeviceMAC() .. "/"
 
 local ImageValue = {
-  value = storagePath .. "icon.png",
+  -- value = storagePath .. "icon.png",
   imageType = "DYNAMIC",
 }
 
@@ -109,6 +109,9 @@ local requestParams_noVR = {
 }
 
 --[[ Local Functions ]]
+local function setImage(pParams)
+  pParams.vrHelp[1].image.value = commonSmoke.getPathToFileInStorage("icon.png")
+end
 
 --! @setChoiceSet: Creates Choice structure
 --! @parameters:
@@ -396,6 +399,8 @@ runner.Step("CreateInteractionChoiceSet with id 100", CreateInteractionChoiceSet
 runner.Step("CreateInteractionChoiceSet with id 200", CreateInteractionChoiceSet, {200})
 runner.Step("CreateInteractionChoiceSet with id 300", CreateInteractionChoiceSet, {300})
 runner.Step("CreateInteractionChoiceSet no VR commands with id 400", CreateInteractionChoiceSet_noVR, {400})
+runner.Step("Set Image Value", setImage, {requestParams})
+runner.Step("Set Image Value", setImage, {requestParams_noVR})
 
 runner.Title("Test")
 runner.Step("PerformInteraction with VR_ONLY interaction mode", PI_PerformViaVR_ONLY, {requestParams})

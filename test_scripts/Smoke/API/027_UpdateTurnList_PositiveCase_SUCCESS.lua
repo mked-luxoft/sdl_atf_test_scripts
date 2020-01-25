@@ -74,8 +74,6 @@ responseUiParams.turnList[1].navigationText = {
   fieldText = requestParams.turnList[1].navigationText,
   fieldName = "turnText"
 }
-responseUiParams.turnList[1].turnIcon.value = commonSmoke.getPathToFileInStorage(requestParams.turnList[1].turnIcon.value)
-responseUiParams.softButtons[1].image.value = commonSmoke.getPathToFileInStorage(requestParams.softButtons[1].image.value)
 
 local allParams = {
   requestParams = requestParams,
@@ -85,6 +83,9 @@ local allParams = {
 --[[ Local Functions ]]
 local function updateTurnList(pParams, self)
   local cid = self.mobileSession1:SendRPC("UpdateTurnList", pParams.requestParams)
+  pParams.responseUiParams.turnList[1].turnIcon.value = commonSmoke.getPathToFileInStorage(requestParams.turnList[1].turnIcon.value)
+  pParams.responseUiParams.softButtons[1].image.value = commonSmoke.getPathToFileInStorage(requestParams.softButtons[1].image.value)
+
   EXPECT_HMICALL("Navigation.UpdateTurnList", pParams.responseUiParams)
   :Do(function(_,data)
     self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS")

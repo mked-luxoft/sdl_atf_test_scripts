@@ -36,14 +36,16 @@ commonSmoke.read_parameter_from_smart_device_link_ini =  commonFunctions.read_pa
 commonSmoke.GetPathToSDL = commonPreconditions.GetPathToSDL
 commonSmoke.jsonFileToTable = utils.jsonFileToTable
 commonSmoke.wait = utils.wait
+commonSmoke.getDeviceTransportType = utils.getDeviceTransportType
 
 local preloadedPT = commonSmoke:read_parameter_from_smart_device_link_ini("PreloadedPT")
 
 --[[Module functions]]
-local function allowSDL(self)
+
+function commonSmoke.allowSDL(self)
   self.hmiConnection:SendNotification("SDL.OnAllowSDLFunctionality",
     { allowed = true, source = "GUI", device = { id = commonSmoke.getDeviceMAC(), name = commonSmoke.getDeviceName() }})
-  utils.wait(commonSmoke.minTimeout)
+  return utils.wait(commonSmoke.minTimeout)
 end
 
 function commonSmoke.preconditions()
@@ -55,15 +57,11 @@ function commonSmoke.preconditions()
 end
 
 function commonSmoke.getDeviceName()
-  return config.mobileHost .. ":" .. config.mobilePort
+  return utils.getDeviceName()
 end
 
 function commonSmoke.getDeviceMAC()
-  local cmd = "echo -n " .. commonSmoke.getDeviceName() .. " | sha256sum | awk '{printf $1}'"
-  local handle = io.popen(cmd)
-  local result = handle:read("*a")
-  handle:close()
-  return result
+  return utils.getDeviceMAC()
 end
 
 function commonSmoke.getPathToSDL()
@@ -199,7 +197,7 @@ function commonSmoke.start(pHMIParams, self)
         self:connectMobile()
         :Do(function()
           commonFunctions:userPrint(consts.color.magenta, "Mobile connected")
-          allowSDL(self)
+          commonSmoke.allowSDL(self)
         end)
       end)
     end)

@@ -49,7 +49,7 @@ local requestParams = {
 local requestUiParams = {
   syncFileName = {
     imageType = "DYNAMIC",
-    value = commonSmoke.getPathToFileInStorage(requestParams.syncFileName)
+    -- value = commonSmoke.getPathToFileInStorage(requestParams.syncFileName)
   }
 }
 
@@ -62,6 +62,7 @@ local allParams = {
 local function setAppIcon(params, self)
   local cid = self.mobileSession1:SendRPC("SetAppIcon", params.requestParams)
   params.requestUiParams.appID = commonSmoke.getHMIAppId()
+  params.requestUiParams.syncFileName.value = commonSmoke.getPathToFileInStorage(requestParams.syncFileName)
   EXPECT_HMICALL("UI.SetAppIcon", params.requestUiParams)
   :Do(function(_, data)
       self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})

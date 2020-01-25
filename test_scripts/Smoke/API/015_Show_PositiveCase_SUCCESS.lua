@@ -110,11 +110,11 @@ local responseUiParams = {
   alignment = requestParams.alignment,
   graphic = {
     imageType = requestParams.graphic.imageType,
-    value = commonSmoke.getPathToFileInStorage(requestParams.graphic.value)
+    -- value = commonSmoke.getPathToFileInStorage(requestParams.graphic.value)
   },
   secondaryGraphic = {
     imageType = requestParams.secondaryGraphic.imageType,
-    value = commonSmoke.getPathToFileInStorage(requestParams.secondaryGraphic.value)
+    -- value = commonSmoke.getPathToFileInStorage(requestParams.secondaryGraphic.value)
   }
 }
 
@@ -127,6 +127,8 @@ local allParams = {
 local function Show(pParams, self)
   local cid = self.mobileSession1:SendRPC("Show", pParams.requestParams)
   pParams.responseUiParams.appID = commonSmoke.getHMIAppId()
+  pParams.responseUiParams.graphic.value = commonSmoke.getPathToFileInStorage(pParams.requestParams.graphic.value)
+  pParams.responseUiParams.secondaryGraphic.value = commonSmoke.getPathToFileInStorage(pParams.requestParams.secondaryGraphic.value)
   EXPECT_HMICALL("UI.Show", pParams.responseUiParams)
   :Do(function(_,data)
       self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", { })

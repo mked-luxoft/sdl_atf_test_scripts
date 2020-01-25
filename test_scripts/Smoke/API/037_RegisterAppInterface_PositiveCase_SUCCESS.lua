@@ -75,7 +75,7 @@ local function SetNotificationParams()
 	notificationParams.application.deviceInfo = {
 		name = commonSmoke.getDeviceName(),
 		id = commonSmoke.getDeviceMAC(),
-		transportType = "WIFI",
+		transportType = commonSmoke.getDeviceTransportType(),
 		isSDLAllowed = true
 	}
 	notificationParams.application.policyAppID = requestParams.fullAppID

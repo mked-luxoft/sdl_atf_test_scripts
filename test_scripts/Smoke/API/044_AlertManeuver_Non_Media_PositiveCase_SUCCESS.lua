@@ -86,17 +86,15 @@ local requestParams = {
 }
 
 local function naviParamsSet(tbl)
-  local Params = commonFunctions:cloneTable(tbl)
-  for k, _ in pairs(Params) do
-    if Params[k].image then
-      Params[k].image.value = commonSmoke.getPathToFileInStorage(Params[k].image.value)
+  for k, _ in pairs(tbl) do
+    if tbl[k].image then
+      tbl[k].image.value = commonSmoke.getPathToFileInStorage(tbl[k].image.value)
     end
   end
-  return Params
 end
 
 local responseNaviParams = {
-  softButtons = naviParamsSet(requestParams.softButtons)
+  softButtons = commonFunctions:cloneTable(requestParams.softButtons)
 }
 
 local responseTtsParams = {
@@ -111,6 +109,7 @@ local allParams = {
 
 --[[ Local Functions ]]
 local function alertManeuver(pParams, self)
+  naviParamsSet(pParams.responseNaviParams.softButtons)
   local cid = self.mobileSession1:SendRPC("AlertManeuver", pParams.requestParams)
   EXPECT_HMICALL("Navigation.AlertManeuver", pParams.responseNaviParams)
   :Do(function(_, data)

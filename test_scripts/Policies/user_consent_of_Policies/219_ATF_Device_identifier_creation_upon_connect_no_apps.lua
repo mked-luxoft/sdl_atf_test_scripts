@@ -13,45 +13,77 @@
 -- Expected result:
 -- SDL must add new device in deviceList of BasicCommunication.UpdateDeviceList
 ---------------------------------------------------------------------------------------------
+--[[ General Settings for configuration ]]
+Test = require('user_modules/dummy_connecttest')
+
 --[[ Required Shared libraries ]]
 local commonFunctions = require ('user_modules/shared_testcases/commonFunctions')
 local commonSteps = require('user_modules/shared_testcases/commonSteps')
-local commonTestCases = require('user_modules/shared_testcases/commonTestCases')
 local utils = require ('user_modules/utils')
+local hmi_values = require('user_modules/hmi_values')
 
 --[[ General Precondition before ATF start ]]
-commonSteps:DeleteLogsFileAndPolicyTable()
+commonSteps:DeleteLogsFiles()
+commonSteps:DeletePolicyTable()
 
---[[ General Settings for configuration ]]
-Test = require('user_modules/connecttest_resumption')
-require('cardinalities')
-require('user_modules/AppTypes')
+--[[ Local Variables ]]
+local hmiParams = hmi_values.getDefaultHMITable()
+local vin = hmiParams.VehicleInfo.GetVehicleData.params.vin
 
---[[ Preconditions ]]
-commonFunctions:newTestCasesGroup("Preconditions")
-
---[[ Test ]]
-commonFunctions:newTestCasesGroup("Test")
-function Test:Test_Connect_device()
-  commonTestCases:DelayedExp(2000)
-  self:connectMobile()
-  EXPECT_HMICALL("BasicCommunication.UpdateDeviceList",
-    {
+--[[ Local Functions ]]
+function Test:initHMIonReady()
+  hmiParams.BasicCommunication.UpdateDeviceList = nil
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList", {
       deviceList = {
-        {
-          id = utils.getDeviceMAC(),
-          name = utils.getDeviceName(),
-          transportType = "WIFI",
+        [1] = {
+          id = utils.buildDeviceMAC("WS", { vin = vin }),
           isSDLAllowed = false
         }
       }
-    }
-  )
-  :Do(function(_,data)
-      self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
-    end)
+    })
+    :Do(function(_,data)
+        self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
+      end)
+  return self:initHMI_onReady(hmiParams)
+end
 
-  --SDL snapshot will not be created until Device is consented through registered application
+--[[ Test ]]
+commonFunctions:newTestCasesGroup("Test")
+
+function Test:HMI_SDL_initialization()
+  self:runSDL()
+  commonFunctions:waitForSDLStart(self):Do(function()
+      self:initHMI():Do(function()
+          commonFunctions:userPrint(35, "HMI initialized")
+          self:initHMIonReady():Do(function ()
+              commonFunctions:userPrint(35, "HMI is ready")
+            end)
+        end)
+    end)
+end
+
+function Test:UpdateDeviceList_on_device_connect()
+  if utils.getDeviceTransportType() == "WIFI" then
+    self:connectMobile()
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList", {
+      deviceList = {
+        [1] = {
+          id = utils.buildDeviceMAC("TCP", { host = config.mobileHost, port = config.mobilePort }),
+          isSDLAllowed = false
+        },
+        [2] = {
+          id = utils.buildDeviceMAC("WS", { vin = vin }),
+          isSDLAllowed = false
+        }
+      }
+    })
+    :Do(function(_,data)
+        self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
+      end)
+  else
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList")
+    :Times(0)
+  end
 end
 
 --[[ Postconditions ]]
@@ -59,5 +91,3 @@ commonFunctions:newTestCasesGroup("Postconditions")
 function Test.Postcondition_SDLStop()
   StopSDL()
 end
-
-return Test

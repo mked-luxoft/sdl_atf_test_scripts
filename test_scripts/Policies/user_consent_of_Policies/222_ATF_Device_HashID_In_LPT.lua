@@ -26,9 +26,6 @@ local utils = require ('user_modules/utils')
 commonSteps:DeleteLogsFiles()
 commonSteps:DeletePolicyTable()
 
---[[ Local Variables ]]
-local MACHash = nil
-
 --[[ General Settings for configuration ]]
 Test = require('connecttest')
 require('cardinalities')
@@ -48,21 +45,12 @@ end
 --[[ Preconditions ]]
 function Test:Precondition_Get_List_Of_Connected_Devices()
   self.hmiConnection:SendNotification("BasicCommunication.OnStartDeviceDiscovery")
-  EXPECT_HMICALL("BasicCommunication.UpdateDeviceList",
-  {
-    deviceList = {
-      {
-        id = utils.getDeviceMAC(),
-        name = utils.getDeviceName(),
-        transportType = "WIFI",
-        isSDLAllowed = false
-      }
-    }
-  }
-  ):Do(function(_,data)
-  MACHash = data.params.deviceList[1].id
-  self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
-  end)
+  if utils.getDeviceTransportType() == "WIFI" then
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList")
+    :Do(function(_,data)
+        self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
+      end)
+  end
 end
 
 --[[ Test ]]
@@ -74,7 +62,7 @@ function Test:Initiate_PTU_And_Check_DeviceHashId_In_PTS()
   local RequestIdGetUserFriendlyMessage = self.hmiConnection:SendRequest("SDL.GetUserFriendlyMessage", {language = "EN-US", messageCodes = {"DataConsent"}})
   EXPECT_HMIRESPONSE(RequestIdGetUserFriendlyMessage,{result = {code = 0, method = "SDL.GetUserFriendlyMessage"}})
   :Do(function(_,_)
-  self.hmiConnection:SendNotification("SDL.OnAllowSDLFunctionality", {allowed = true, source = "GUI", device = {id = MACHash, name = utils.getDeviceName()}})
+  self.hmiConnection:SendNotification("SDL.OnAllowSDLFunctionality", {allowed = true, source = "GUI", device = {id = utils.getDeviceMAC(), name = utils.getDeviceName()}})
   EXPECT_HMICALL("BasicCommunication.ActivateApp")
   :Do(function(_,data1)
   self.hmiConnection:SendResponse(data1.id,"BasicCommunication.ActivateApp", "SUCCESS", {})
@@ -84,7 +72,7 @@ function Test:Initiate_PTU_And_Check_DeviceHashId_In_PTS()
   end)
   EXPECT_HMICALL("BasicCommunication.PolicyUpdate")
   :ValidIf (function(_,data)
-  return GetDeviceMacHashFromSnapshot(data.params.file) == MACHash
+  return GetDeviceMacHashFromSnapshot(data.params.file) == utils.getDeviceMAC()
   end)
   EXPECT_NOTIFICATION("OnHMIStatus", {hmiLevel = "FULL", systemContext = "MAIN", audioStreamingState = "AUDIBLE"})
 end

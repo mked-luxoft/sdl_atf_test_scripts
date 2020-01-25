@@ -69,7 +69,7 @@ function Test:Precondtion_Activate_App_Consent_Update()
         {
           name = utils.getDeviceName(),
           id = utils.getDeviceMAC(),
-          transportType = "WIFI",
+          transportType = utils.getDeviceTransportType(),
           isSDLAllowed = false
         }
       }

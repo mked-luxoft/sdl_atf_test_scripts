@@ -41,21 +41,24 @@ commonFunctions:newTestCasesGroup("Preconditions")
 function Test:Precondition_Connect_device()
   commonTestCases:DelayedExp(2000)
   self:connectMobile()
-  EXPECT_HMICALL("BasicCommunication.UpdateDeviceList",
-    {
+  if utils.getDeviceTransportType() == "WIFI" then
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList", {
       deviceList = {
         {
           id = utils.getDeviceMAC(),
           name = utils.getDeviceName(),
-          transportType = "WIFI",
+          transportType = utils.getDeviceTransportType(),
           isSDLAllowed = false
+        },
+        {
+          transportType = "WEBENGINE_WEBSOCKET",
         }
       }
-    }
-  )
-  :Do(function(_,data)
-      self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
-    end)
+    })
+    :Do(function(_,data)
+        self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
+      end)
+  end
 end
 
 function Test:Precondition_Register_app()
@@ -72,7 +75,7 @@ function Test:Precondition_Register_app()
             {
               name = utils.getDeviceName(),
               id = utils.getDeviceMAC(),
-              transportType = "WIFI"
+              transportType = utils.getDeviceTransportType()
             }
           }
         })

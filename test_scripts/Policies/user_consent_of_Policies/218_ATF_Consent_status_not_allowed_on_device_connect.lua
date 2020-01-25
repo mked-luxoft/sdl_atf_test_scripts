@@ -14,40 +14,64 @@
 --     SDL must request DataConsent status of the corresponding device from the PoliciesManager
 -------------------------------------------------------------------------------------------------
 --[[ General Settings for configuration ]]
-Test = require('user_modules/connecttest_resumption')
-require('cardinalities')
+Test = require('user_modules/dummy_connecttest')
 
 --[[ Required Shared libraries ]]
 local commonFunctions = require ('user_modules/shared_testcases/commonFunctions')
 local commonSteps = require('user_modules/shared_testcases/commonSteps')
-local commonTestCases = require('user_modules/shared_testcases/commonTestCases')
 local utils = require ('user_modules/utils')
-require('user_modules/AppTypes')
+local hmi_values = require('user_modules/hmi_values')
 
 --[[ General Precondition before ATF start ]]
 commonSteps:DeleteLogsFiles()
 commonSteps:DeletePolicyTable()
 
+--[[ Local Functions ]]
+function Test:initHMIonReady()
+  local hmiParams = hmi_values.getDefaultHMITable()
+  hmiParams.BasicCommunication.UpdateDeviceList = nil
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList", {
+      deviceList = {
+        [1] = { isSDLAllowed = false }
+      }
+    })
+    :Do(function(_,data)
+        self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
+      end)
+  return self:initHMI_onReady(hmiParams)
+end
+
 --[[ Test ]]
 commonFunctions:newTestCasesGroup("Test")
-function Test:Check_device_connects_as_not_consented()
-  commonTestCases:DelayedExp(2000)
-  self:connectMobile()
-  EXPECT_HMICALL("BasicCommunication.UpdateDeviceList",
-  {
-    deviceList = {
-      {
-        id = utils.getDeviceMAC(),
-        isSDLAllowed = false,
-        name = utils.getDeviceName(),
-        transportType = "WIFI"
+
+function Test:HMI_SDL_initialization()
+  self:runSDL()
+  commonFunctions:waitForSDLStart(self):Do(function()
+      self:initHMI():Do(function()
+          commonFunctions:userPrint(35, "HMI initialized")
+          self:initHMIonReady():Do(function ()
+              commonFunctions:userPrint(35, "HMI is ready")
+            end)
+        end)
+    end)
+end
+
+function Test:UpdateDeviceList_on_device_connect()
+  if utils.getDeviceTransportType() == "WIFI" then
+    self:connectMobile()
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList", {
+      deviceList = {
+        [1] = { isSDLAllowed = false },
+        [2] = { isSDLAllowed = false }
       }
-    }
-  }
-  ):Do(function(_,data)
-  self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
-  end)
-  :Times(AtLeast(1))
+    })
+    :Do(function(_,data)
+        self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", {})
+      end)
+  else
+    EXPECT_HMICALL("BasicCommunication.UpdateDeviceList")
+    :Times(0)
+  end
 end
 
 --[[ Postconditions ]]
